@@ -1,0 +1,1012 @@
+Exam #2
+
+getwd()
+load("/Users/Abdul/Downloads/acs2021_recoded.RData")
+load("/Users/Abdul/Downloads/acs_2021_couples.RData")
+library(dplyr)
+library(ggplot2)
+library(tidyverse)
+install.packages("haven")
+library(readr)
+install.packages("readr")
+
+
+
+1) Y= 12.18 +(-0.308)(25)+(0.0048)(25^2)+(0.00003)(25^3)= 7.01
+Y= 12.18 +(-0.308)(45)+(0.0048)(45^2)+(0.00003)(45^3)= 5.31 
+
+load("/Users/Abdul/Downloads/brfss_for_exam2_fall24.rdata")
+write.csv(brfss_for_exam2_fall24, "brfss_for_exam2_fall24.rdata.csv")
+
+
+2)
+ols_model1 <- lm(MentalHealth ~ AgeBracket + Educ + IncomeBracket, data = your_data)
+
+
+summary(ols_model1)
+
+
+
+educ_hypothesis <- linearHypothesis(ols_model1, c("Educ1 = 0", "Educ2 = 0", "Educ3 = 0"))
+educ_hypothesis
+
+
+income_hypothesis <- linearHypothesis(ols_model1, c("IncomeBracket1 = 0", "IncomeBracket2 = 0", "IncomeBracket3 = 0"))
+income_hypothesis
+
+Null: The coefficients for all levels of education are zero. (Income and Education)
+Alternate: At least one of the education coefficients is not zero. (Income and Education)
+
+Since the p-value was 2.2e-16, we can reject the null hypoethesis which suggests that coefficients for income and education are zero
+
+
+3)
+
+
+subset_data <- brfss_sm[, c("MentalHealth", "IncomeBracket", "Educ", "AgeBracket")]
+
+
+summary(subset_data$MentalHealth)
+
+
+table(subset_data$IncomeBracket)
+table(subset_data$Educ)
+
+
+table(subset_data$AgeBracket)
+
+
+summary(subset_data)
+
+
+Findings from the subset :
+  
+  The majority of individuals report no days of poor mental health (Median = 0), but the mean is higher (4.58 days), suggesting that a smaller group may experience a significant number of days with poor mental health.
+  A significant portion of the population falls into the $50k - $75k income range (54,920 individuals), followed by the $100k - $150k range (48,686 individuals).
+  A large portion of the population has completed college or more (174,447 individuals). This indicates that the dataset may have a high representation of individuals with higher education levels.
+  The dataset includes individuals across different age ranges, with a notable representation of older age groups (ages 65-79) in the sample, suggesting that the data might be skewed towards an older demographic.
+  
+  
+4a)
+
+
+brfss_sm$IncomeBracket <- as.factor(brfss_sm$IncomeBracket)
+brfss_sm$Educ <- as.factor(brfss_sm$Educ)
+brfss_sm$AgeBracket <- as.factor(brfss_sm$AgeBracket)
+
+
+brfss_sm$MentalHealth_01 <- ifelse(brfss_sm$MentalHealth > 3, 1, 0)
+
+
+ols_model <- lm(MentalHealth_01 ~ IncomeBracket * Educ + AgeBracket, data = brfss_sm)
+
+
+summary(ols_model)
+
+I chose IncomeBracket, AGEBracket and Educ and the interaction between Income and Education. I would say that IncomeBracket and Educ are not exogenous but AgeBracket is because it doesn't seem to depend on MentalHealth or other variables. The interaction is showing us whether income affects mental health differently depending on the level of education.
+For IncomeBracketHH income 15k - 20k:EducGrades 1 through 8 (Elementary):This interaction term is positive (0.134973).
+It suggests that for people with only elementary education, having an income between 15k-20k is associated with a higher likelihood of reporting poor mental health. So, increasing income doesn't help as much for people with lower education.
+For IncomeBracketHH income 100k - 150k:EducCollege 4 years or more (College graduate): This interaction term is positive (0.159681).
+It indicates that for college graduates, higher income (100k - 150k) seems to have a positive effect on mental health. People with higher education and higher income are more likely to report fewer days of poor mental health.
+
+
+4b) I would say the estimates seem plausible. For example : For IncomeBracketHH income 15k - 20k: The coefficient of -0.1875 suggests that people in this income bracket are less likely to report poor mental health than those in lower income brackets, which aligns with the general understanding that higher income can reduce mental health stress. For EducCollege 1 year to 3 years: The coefficient of 0.1343 suggests that individuals with some college or technical school experience are more likely to report poor mental health than those with lower education.
+I would say that age and Income are the most statistically significat because their effects on mental health are unlikely to be due to chance.  (followed by education)  The interactions are not based on the output/data. Income's effect on mental health doesn't change much depending on education level.
+
+4c)
+
+
+
+
+income_test <- linearHypothesis(ols_model, 
+                                c("IncomeBracketHH income 10k - 15k = 0",
+                                  "IncomeBracketHH income 15k - 20k = 0",
+                                  "IncomeBracketHH income 20k - 25k = 0",
+                                  "IncomeBracketHH income 25k - 35k = 0",
+                                  "IncomeBracketHH income 35k - 50k = 0",
+                                  "IncomeBracketHH income 50k - 75k = 0",
+                                  "IncomeBracketHH income 75k - 100k = 0",
+                                  "IncomeBracketHH income 100k - 150k = 0",
+                                  "IncomeBracketHH income 150k - 200k = 0",
+                                  "IncomeBracketHH income 200k + = 0"))
+
+
+income_test
+
+
+
+education_test <- linearHypothesis(ols_model, 
+                                   c("EducGrades 1 through 8 (Elementary) = 0",
+                                     "EducGrades 9 through 11 (Some high school) = 0",
+                                     "EducGrade 12 or GED (High school graduate) = 0",
+                                     "EducCollege 1 year to 3 years (Some college or technical school) = 0",
+                                     "EducCollege 4 years or more (College graduate) = 0"))
+
+
+education_test
+
+4d) The groups I will use are IncomeBracket, Educ and AgeBracket.
+
+
+predict <- function(income, educ, age, model) {
+
+  predictdata <- data.frame(
+    IncomeBracket = factor(income, levels = levels(brfss_sm$IncomeBracket)),
+    Educ = factor(educ, levels = levels(brfss_sm$Educ)),
+    AgeBracket = factor(age, levels = levels(brfss_sm$AgeBracket))
+  )
+  
+ 
+  linear_pred <- predict(model, newdata = predictdata, type = "response")
+  
+  
+  probability <- 1 / (1 + exp(-linear_pred))
+  return(probability)
+}
+
+
+mid_prob <- predict_probability("HH income 50k - 75k", "Grade 12 or GED (High school graduate)", "Age 25 to 29", ols_model)
+high_prob <- predict_probability("HH income 100k - 150k", "College 4 years or more (College graduate)", "Age 60 to 64", ols_model)
+low_prob <- predict_probability("HH income 35k - 50k", "College 1 year to 3 years (Some college or technical school)", "Age 45 to 49", ols_model)
+
+
+mid_prob
+high_prob
+low_prob
+
+This means that there is a  60% chance that  the people in the 50k-75k range will report more than 3 days of poor mental health.
+This means that there is a  54% chance that  the people in the 100k-150k range will report more than 3 days of poor mental health.
+This means that there is a  59% chance that  the people in the 35k-50k range will report more than 3 days of poor mental health.
+
+4e) Skip for now
+
+
+
+5a) 
+
+
+Logitsubset_data <- na.omit(brfss_sm[, c("MentalHealth_01", "IncomeBracket", "Educ", "AgeBracket")])
+
+
+logit_model <- glm(MentalHealth_01 ~ IncomeBracket + Educ + AgeBracket, 
+                   data = Logitsubset_data, 
+                   family = binomial(link = "logit"))
+
+
+summary(logit_model)
+
+
+
+The predictors stayed the same with education, income and age as they have some impact on mentalhealth. Based on the data, only Age seems to be exogenous because it doesn't have a relationship with the other variables of the dataset.
+
+5b)  The coefficient for IncomeBracketHH income 200k+ is -1.35208, indicating that individuals in this income bracket have a lower likelihood of reporting poor mental health compared to the baseline income group. These negative coefficients are consistent with expectations for the effect of income on mental health, so the estimates seem plausible.
+       The coefficients for age categories are negative , indicating that older individuals are more likely to report poor mental health. This is plausible given the challenges older individuals may face.
+The coefficients for education categories  are positive which does not seem plausible.
+
+For income, education and age , all the p-values are less than 0.05 which means that it is statistically significant to mental health.
+
+5c)
+
+
+
+
+Logitincome_test <- linearHypothesis(logit_model, 
+  c("IncomeBracketHH income 10k - 15k = 0",
+    "IncomeBracketHH income 15k - 20k = 0",
+    "IncomeBracketHH income 20k - 25k = 0",
+    "IncomeBracketHH income 25k - 35k = 0",
+    "IncomeBracketHH income 35k - 50k = 0",
+    "IncomeBracketHH income 50k - 75k = 0",
+    "IncomeBracketHH income 75k - 100k = 0",
+    "IncomeBracketHH income 100k - 150k = 0",
+    "IncomeBracketHH income 150k - 200k = 0",
+    "IncomeBracketHH income 200k + = 0"))
+
+
+Logitincome_test
+
+
+
+Logiteducation_test <- linearHypothesis(logit_model, 
+  c("EducGrades 1 through 8 (Elementary) = 0",
+    "EducGrades 9 through 11 (Some high school) = 0",
+    "EducGrade 12 or GED (High school graduate) = 0",
+    "EducCollege 1 year to 3 years (Some college or technical school) = 0",
+    "EducCollege 4 years or more (College graduate) = 0"))
+
+
+education_test
+
+
+
+
+5d)
+
+
+logitpredict_probability <- function(income, educ, age, model) {
+  
+  logit_data <- data.frame(
+    IncomeBracket = factor(income, levels = levels(Logitsubset_data$IncomeBracket)),
+    Educ = factor(educ, levels = levels(Logitsubset_data$Educ)),
+    AgeBracket = factor(age, levels = levels(Logitsubset_data$AgeBracket))
+  )
+  
+  
+  linear_pred <- predict(model, logitdata = logit_data, type = "link")
+  
+  
+  probability <- 1 / (1 + exp(-linear_pred))
+  return(probability)
+}
+
+
+hs_prob <- predict_probability("HH income 50k - 75k", "Grade 12 or GED (High school graduate)", "Age 25 to 29", logit_model)
+college_prob <- predict_probability("HH income 100k - 150k", "College 4 years or more (College graduate)", "Age 60 to 64", logit_model)
+lesscollege_prob <- predict_probability("HH income 35k - 50k", "College 1 year to 3 years (Some college or technical school)", "Age 45 to 49", logit_model)
+
+hs_prob
+college_prob
+lesscollege_prob
+
+
+
+
+
+6)
+
+
+
+install.packages("randomForest")
+library(randomForest)
+
+
+rf_model <- randomForest(MentalHealth_01 ~ IncomeBracket + Educ + AgeBracket, data = Logitsubset_data)
+
+
+rf_model
+
+
+importance(rf_model)
+
+Seems to be more accurate than Ols and Logit.
+
+
+
+
+Outputs :
+
+For #2 : 
+
+Call:
+lm(formula = MentalHealth ~ AgeBracket + Educ + IncomeBracket, 
+    data = brfss_sm_clean)
+
+Residuals:
+     Min       1Q   Median       3Q      Max 
+-11.4315  -3.3905  -2.2482  -0.8784  29.0834 
+
+Coefficients:
+                                                                 Estimate
+(Intercept)                                                       15.0881
+AgeBracketAge 25 to 29                                            -2.0014
+AgeBracketAge 30 to 34                                            -1.0397
+AgeBracketAge 35 to 39                                            -2.2586
+AgeBracketAge 40 to 44                                            -1.7929
+AgeBracketAge 45 to 49                                            -1.9823
+AgeBracketAge 50 to 54                                            -2.2143
+AgeBracketAge 55 to 59                                            -2.7454
+AgeBracketAge 60 to 64                                            -3.1963
+AgeBracketAge 65 to 69                                            -3.9708
+AgeBracketAge 70 to 74                                            -3.8025
+AgeBracketAge 75 to 79                                            -4.4896
+EducGrades 1 through 8 (Elementary)                               -5.3458
+EducGrades 9 through 11 (Some high school)                        -3.6566
+EducGrade 12 or GED (High school graduate)                        -4.8282
+EducCollege 1 year to 3 years (Some college or technical school)  -4.4406
+EducCollege 4 years or more (College graduate)                    -4.7159
+IncomeBracketHH income 10k - 15k                                  -0.2200
+IncomeBracketHH income 15k - 20k                                  -0.8316
+IncomeBracketHH income 20k - 25k                                  -1.9056
+IncomeBracketHH income 25k - 35k                                  -2.8432
+IncomeBracketHH income 35k - 50k                                  -3.4107
+IncomeBracketHH income 50k - 75k                                  -4.2363
+IncomeBracketHH income 75k - 100k                                 -4.5384
+IncomeBracketHH income 100k - 150k                                -4.9277
+IncomeBracketHH income 150k - 200k                                -4.8535
+IncomeBracketHH income 200k +                                     -5.4847
+                                                                 Std. Error
+(Intercept)                                                          4.3460
+AgeBracketAge 25 to 29                                               1.3998
+AgeBracketAge 30 to 34                                               1.1741
+AgeBracketAge 35 to 39                                               1.1058
+AgeBracketAge 40 to 44                                               1.0499
+AgeBracketAge 45 to 49                                               1.0365
+AgeBracketAge 50 to 54                                               1.0103
+AgeBracketAge 55 to 59                                               0.9968
+AgeBracketAge 60 to 64                                               0.9875
+AgeBracketAge 65 to 69                                               0.9833
+AgeBracketAge 70 to 74                                               0.9816
+AgeBracketAge 75 to 79                                               0.9828
+EducGrades 1 through 8 (Elementary)                                  4.3087
+EducGrades 9 through 11 (Some high school)                           4.2626
+EducGrade 12 or GED (High school graduate)                           4.2453
+EducCollege 1 year to 3 years (Some college or technical school)     4.2452
+EducCollege 4 years or more (College graduate)                       4.2452
+IncomeBracketHH income 10k - 15k                                     0.5565
+IncomeBracketHH income 15k - 20k                                     0.5293
+IncomeBracketHH income 20k - 25k                                     0.4985
+IncomeBracketHH income 25k - 35k                                     0.4685
+IncomeBracketHH income 35k - 50k                                     0.4654
+IncomeBracketHH income 50k - 75k                                     0.4612
+IncomeBracketHH income 75k - 100k                                    0.4701
+IncomeBracketHH income 100k - 150k                                   0.4788
+IncomeBracketHH income 150k - 200k                                   0.5440
+IncomeBracketHH income 200k +                                        0.5428
+                                                                 t value
+(Intercept)                                                        3.472
+AgeBracketAge 25 to 29                                            -1.430
+AgeBracketAge 30 to 34                                            -0.885
+AgeBracketAge 35 to 39                                            -2.043
+AgeBracketAge 40 to 44                                            -1.708
+AgeBracketAge 45 to 49                                            -1.912
+AgeBracketAge 50 to 54                                            -2.192
+AgeBracketAge 55 to 59                                            -2.754
+AgeBracketAge 60 to 64                                            -3.237
+AgeBracketAge 65 to 69                                            -4.038
+AgeBracketAge 70 to 74                                            -3.874
+AgeBracketAge 75 to 79                                            -4.568
+EducGrades 1 through 8 (Elementary)                               -1.241
+EducGrades 9 through 11 (Some high school)                        -0.858
+EducGrade 12 or GED (High school graduate)                        -1.137
+EducCollege 1 year to 3 years (Some college or technical school)  -1.046
+EducCollege 4 years or more (College graduate)                    -1.111
+IncomeBracketHH income 10k - 15k                                  -0.395
+IncomeBracketHH income 15k - 20k                                  -1.571
+IncomeBracketHH income 20k - 25k                                  -3.822
+IncomeBracketHH income 25k - 35k                                  -6.069
+IncomeBracketHH income 35k - 50k                                  -7.328
+IncomeBracketHH income 50k - 75k                                  -9.185
+IncomeBracketHH income 75k - 100k                                 -9.654
+IncomeBracketHH income 100k - 150k                               -10.292
+IncomeBracketHH income 150k - 200k                                -8.922
+IncomeBracketHH income 200k +                                    -10.104
+                                                                 Pr(>|t|)    
+(Intercept)                                                      0.000519 ***
+AgeBracketAge 25 to 29                                           0.152825    
+AgeBracketAge 30 to 34                                           0.375907    
+AgeBracketAge 35 to 39                                           0.041119 *  
+AgeBracketAge 40 to 44                                           0.087703 .  
+AgeBracketAge 45 to 49                                           0.055837 .  
+AgeBracketAge 50 to 54                                           0.028415 *  
+AgeBracketAge 55 to 59                                           0.005890 ** 
+AgeBracketAge 60 to 64                                           0.001212 ** 
+AgeBracketAge 65 to 69                                           5.41e-05 ***
+AgeBracketAge 70 to 74                                           0.000108 ***
+AgeBracketAge 75 to 79                                           4.96e-06 ***
+EducGrades 1 through 8 (Elementary)                              0.214732    
+EducGrades 9 through 11 (Some high school)                       0.391004    
+EducGrade 12 or GED (High school graduate)                       0.255428    
+EducCollege 1 year to 3 years (Some college or technical school) 0.295573    
+EducCollege 4 years or more (College graduate)                   0.266644    
+IncomeBracketHH income 10k - 15k                                 0.692626    
+IncomeBracketHH income 15k - 20k                                 0.116154    
+IncomeBracketHH income 20k - 25k                                 0.000133 ***
+IncomeBracketHH income 25k - 35k                                 1.32e-09 ***
+IncomeBracketHH income 35k - 50k                                 2.47e-13 ***
+IncomeBracketHH income 50k - 75k                                  < 2e-16 ***
+IncomeBracketHH income 75k - 100k                                 < 2e-16 ***
+IncomeBracketHH income 100k - 150k                                < 2e-16 ***
+IncomeBracketHH income 150k - 200k                                < 2e-16 ***
+IncomeBracketHH income 200k +                                     < 2e-16 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 7.329 on 13666 degrees of freedom
+Multiple R-squared:  0.04469,	Adjusted R-squared:  0.04288 
+F-statistic: 24.59 on 26 and 13666 DF,  p-value: < 2.2e-16
+
+
+Number 3: 
+
+ MentalHealth  
+ Min.   : 0.00  
+ 1st Qu.: 0.00  
+ Median : 0.00  
+ Mean   : 4.58  
+ 3rd Qu.: 5.00  
+ Max.   :30.00  
+ NA's   :7849   
+                                                           Educ       
+ Never attended school or only kindergarten                  :   639  
+ Grades 1 through 8 (Elementary)                             :  7420  
+ Grades 9 through 11 (Some high school)                      : 15213  
+ Grade 12 or GED (High school graduate)                      : 98138  
+ College 1 year to 3 years (Some college or technical school):110825  
+ College 4 years or more (College graduate)                  :174447  
+ NA's                                                        :  2199 
+
+
+Number 4: 
+
+Call:
+lm(formula = MentalHealth_01 ~ IncomeBracket * Educ + AgeBracket, 
+    data = brfss_sm)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-0.7166 -0.2985 -0.1915  0.5174  1.0132 
+
+Coefficients:
+                                                                                                     Estimate
+(Intercept)                                                                                          0.563135
+IncomeBracketHH income 10k - 15k                                                                    -0.061566
+IncomeBracketHH income 15k - 20k                                                                    -0.187532
+IncomeBracketHH income 20k - 25k                                                                    -0.111975
+IncomeBracketHH income 25k - 35k                                                                    -0.168385
+IncomeBracketHH income 35k - 50k                                                                    -0.245053
+IncomeBracketHH income 50k - 75k                                                                    -0.107196
+IncomeBracketHH income 75k - 100k                                                                   -0.277651
+IncomeBracketHH income 100k - 150k                                                                  -0.372991
+IncomeBracketHH income 150k - 200k                                                                  -0.052686
+IncomeBracketHH income 200k +                                                                       -0.299067
+EducGrades 1 through 8 (Elementary)                                                                 -0.019823
+EducGrades 9 through 11 (Some high school)                                                           0.080867
+EducGrade 12 or GED (High school graduate)                                                           0.063761
+EducCollege 1 year to 3 years (Some college or technical school)                                     0.134336
+EducCollege 4 years or more (College graduate)                                                       0.086214
+AgeBracketAge 25 to 29                                                                              -0.041773
+AgeBracketAge 30 to 34                                                                              -0.075177
+AgeBracketAge 35 to 39                                                                              -0.110779
+AgeBracketAge 40 to 44                                                                              -0.134288
+AgeBracketAge 45 to 49                                                                              -0.161366
+AgeBracketAge 50 to 54                                                                              -0.181362
+AgeBracketAge 55 to 59                                                                              -0.218434
+AgeBracketAge 60 to 64                                                                              -0.256467
+AgeBracketAge 65 to 69                                                                              -0.306329
+AgeBracketAge 70 to 74                                                                              -0.331276
+AgeBracketAge 75 to 79                                                                              -0.346276
+AgeBracketDont know/Refused/Missing                                                                 -0.267824
+IncomeBracketHH income 10k - 15k:EducGrades 1 through 8 (Elementary)                                 0.084548
+IncomeBracketHH income 15k - 20k:EducGrades 1 through 8 (Elementary)                                 0.134973
+IncomeBracketHH income 20k - 25k:EducGrades 1 through 8 (Elementary)                                 0.021023
+IncomeBracketHH income 25k - 35k:EducGrades 1 through 8 (Elementary)                                 0.033470
+IncomeBracketHH income 35k - 50k:EducGrades 1 through 8 (Elementary)                                 0.043276
+IncomeBracketHH income 50k - 75k:EducGrades 1 through 8 (Elementary)                                 0.003509
+IncomeBracketHH income 75k - 100k:EducGrades 1 through 8 (Elementary)                                0.068285
+IncomeBracketHH income 100k - 150k:EducGrades 1 through 8 (Elementary)                               0.212783
+IncomeBracketHH income 150k - 200k:EducGrades 1 through 8 (Elementary)                              -0.129634
+IncomeBracketHH income 200k +:EducGrades 1 through 8 (Elementary)                                    0.230709
+IncomeBracketHH income 10k - 15k:EducGrades 9 through 11 (Some high school)                          0.067753
+IncomeBracketHH income 15k - 20k:EducGrades 9 through 11 (Some high school)                          0.145579
+IncomeBracketHH income 20k - 25k:EducGrades 9 through 11 (Some high school)                          0.023225
+IncomeBracketHH income 25k - 35k:EducGrades 9 through 11 (Some high school)                          0.060900
+IncomeBracketHH income 35k - 50k:EducGrades 9 through 11 (Some high school)                          0.086257
+IncomeBracketHH income 50k - 75k:EducGrades 9 through 11 (Some high school)                         -0.070699
+IncomeBracketHH income 75k - 100k:EducGrades 9 through 11 (Some high school)                         0.111243
+IncomeBracketHH income 100k - 150k:EducGrades 9 through 11 (Some high school)                        0.205596
+IncomeBracketHH income 150k - 200k:EducGrades 9 through 11 (Some high school)                       -0.206302
+IncomeBracketHH income 200k +:EducGrades 9 through 11 (Some high school)                             0.075243
+IncomeBracketHH income 10k - 15k:EducGrade 12 or GED (High school graduate)                          0.076545
+IncomeBracketHH income 15k - 20k:EducGrade 12 or GED (High school graduate)                          0.149811
+IncomeBracketHH income 20k - 25k:EducGrade 12 or GED (High school graduate)                          0.037818
+IncomeBracketHH income 25k - 35k:EducGrade 12 or GED (High school graduate)                          0.064280
+IncomeBracketHH income 35k - 50k:EducGrade 12 or GED (High school graduate)                          0.108042
+IncomeBracketHH income 50k - 75k:EducGrade 12 or GED (High school graduate)                         -0.061401
+IncomeBracketHH income 75k - 100k:EducGrade 12 or GED (High school graduate)                         0.080828
+IncomeBracketHH income 100k - 150k:EducGrade 12 or GED (High school graduate)                        0.159681
+IncomeBracketHH income 150k - 200k:EducGrade 12 or GED (High school graduate)                       -0.186239
+IncomeBracketHH income 200k +:EducGrade 12 or GED (High school graduate)                             0.058782
+IncomeBracketHH income 10k - 15k:EducCollege 1 year to 3 years (Some college or technical school)    0.080688
+IncomeBracketHH income 15k - 20k:EducCollege 1 year to 3 years (Some college or technical school)    0.146472
+IncomeBracketHH income 20k - 25k:EducCollege 1 year to 3 years (Some college or technical school)    0.040923
+IncomeBracketHH income 25k - 35k:EducCollege 1 year to 3 years (Some college or technical school)    0.049239
+IncomeBracketHH income 35k - 50k:EducCollege 1 year to 3 years (Some college or technical school)    0.074938
+IncomeBracketHH income 50k - 75k:EducCollege 1 year to 3 years (Some college or technical school)   -0.098628
+IncomeBracketHH income 75k - 100k:EducCollege 1 year to 3 years (Some college or technical school)   0.040092
+IncomeBracketHH income 100k - 150k:EducCollege 1 year to 3 years (Some college or technical school)  0.113781
+IncomeBracketHH income 150k - 200k:EducCollege 1 year to 3 years (Some college or technical school) -0.216488
+IncomeBracketHH income 200k +:EducCollege 1 year to 3 years (Some college or technical school)       0.007749
+IncomeBracketHH income 10k - 15k:EducCollege 4 years or more (College graduate)                      0.073875
+IncomeBracketHH income 15k - 20k:EducCollege 4 years or more (College graduate)                      0.144480
+IncomeBracketHH income 20k - 25k:EducCollege 4 years or more (College graduate)                      0.045909
+IncomeBracketHH income 25k - 35k:EducCollege 4 years or more (College graduate)                      0.061917
+IncomeBracketHH income 35k - 50k:EducCollege 4 years or more (College graduate)                      0.112467
+IncomeBracketHH income 50k - 75k:EducCollege 4 years or more (College graduate)                     -0.049072
+IncomeBracketHH income 75k - 100k:EducCollege 4 years or more (College graduate)                     0.084886
+IncomeBracketHH income 100k - 150k:EducCollege 4 years or more (College graduate)                    0.155667
+IncomeBracketHH income 150k - 200k:EducCollege 4 years or more (College graduate)                   -0.185581
+IncomeBracketHH income 200k +:EducCollege 4 years or more (College graduate)                         0.033625
+                                                                                                    Std. Error
+(Intercept)                                                                                           0.057864
+IncomeBracketHH income 10k - 15k                                                                      0.084522
+IncomeBracketHH income 15k - 20k                                                                      0.089975
+IncomeBracketHH income 20k - 25k                                                                      0.086457
+IncomeBracketHH income 25k - 35k                                                                      0.076875
+IncomeBracketHH income 35k - 50k                                                                      0.096357
+IncomeBracketHH income 50k - 75k                                                                      0.107756
+IncomeBracketHH income 75k - 100k                                                                     0.164695
+IncomeBracketHH income 100k - 150k                                                                    0.143655
+IncomeBracketHH income 150k - 200k                                                                    0.187221
+IncomeBracketHH income 200k +                                                                         0.156464
+EducGrades 1 through 8 (Elementary)                                                                   0.059911
+EducGrades 9 through 11 (Some high school)                                                            0.058983
+EducGrade 12 or GED (High school graduate)                                                            0.058258
+EducCollege 1 year to 3 years (Some college or technical school)                                      0.058468
+EducCollege 4 years or more (College graduate)                                                        0.058837
+AgeBracketAge 25 to 29                                                                                0.004656
+AgeBracketAge 30 to 34                                                                                0.004460
+AgeBracketAge 35 to 39                                                                                0.004361
+AgeBracketAge 40 to 44                                                                                0.004318
+AgeBracketAge 45 to 49                                                                                0.004361
+AgeBracketAge 50 to 54                                                                                0.004226
+AgeBracketAge 55 to 59                                                                                0.004158
+AgeBracketAge 60 to 64                                                                                0.004028
+AgeBracketAge 65 to 69                                                                                0.004004
+AgeBracketAge 70 to 74                                                                                0.004079
+AgeBracketAge 75 to 79                                                                                0.004342
+AgeBracketDont know/Refused/Missing                                                                   0.008575
+IncomeBracketHH income 10k - 15k:EducGrades 1 through 8 (Elementary)                                  0.087923
+IncomeBracketHH income 15k - 20k:EducGrades 1 through 8 (Elementary)                                  0.092933
+IncomeBracketHH income 20k - 25k:EducGrades 1 through 8 (Elementary)                                  0.089408
+IncomeBracketHH income 25k - 35k:EducGrades 1 through 8 (Elementary)                                  0.079702
+IncomeBracketHH income 35k - 50k:EducGrades 1 through 8 (Elementary)                                  0.099375
+IncomeBracketHH income 50k - 75k:EducGrades 1 through 8 (Elementary)                                  0.112046
+IncomeBracketHH income 75k - 100k:EducGrades 1 through 8 (Elementary)                                 0.170743
+IncomeBracketHH income 100k - 150k:EducGrades 1 through 8 (Elementary)                                0.153163
+IncomeBracketHH income 150k - 200k:EducGrades 1 through 8 (Elementary)                                0.198593
+IncomeBracketHH income 200k +:EducGrades 1 through 8 (Elementary)                                     0.168291
+IncomeBracketHH income 10k - 15k:EducGrades 9 through 11 (Some high school)                           0.086380
+IncomeBracketHH income 15k - 20k:EducGrades 9 through 11 (Some high school)                           0.091593
+IncomeBracketHH income 20k - 25k:EducGrades 9 through 11 (Some high school)                           0.088012
+IncomeBracketHH income 25k - 35k:EducGrades 9 through 11 (Some high school)                           0.078360
+IncomeBracketHH income 35k - 50k:EducGrades 9 through 11 (Some high school)                           0.097800
+IncomeBracketHH income 50k - 75k:EducGrades 9 through 11 (Some high school)                           0.109313
+IncomeBracketHH income 75k - 100k:EducGrades 9 through 11 (Some high school)                          0.166241
+IncomeBracketHH income 100k - 150k:EducGrades 9 through 11 (Some high school)                         0.146084
+IncomeBracketHH income 150k - 200k:EducGrades 9 through 11 (Some high school)                         0.191316
+IncomeBracketHH income 200k +:EducGrades 9 through 11 (Some high school)                              0.161887
+IncomeBracketHH income 10k - 15k:EducGrade 12 or GED (High school graduate)                           0.085162
+IncomeBracketHH income 15k - 20k:EducGrade 12 or GED (High school graduate)                           0.090511
+IncomeBracketHH income 20k - 25k:EducGrade 12 or GED (High school graduate)                           0.086948
+IncomeBracketHH income 25k - 35k:EducGrade 12 or GED (High school graduate)                           0.077334
+IncomeBracketHH income 35k - 50k:EducGrade 12 or GED (High school graduate)                           0.096726
+IncomeBracketHH income 50k - 75k:EducGrade 12 or GED (High school graduate)                           0.108087
+IncomeBracketHH income 75k - 100k:EducGrade 12 or GED (High school graduate)                          0.164936
+IncomeBracketHH income 100k - 150k:EducGrade 12 or GED (High school graduate)                         0.143956
+IncomeBracketHH income 150k - 200k:EducGrade 12 or GED (High school graduate)                         0.187611
+IncomeBracketHH income 200k +:EducGrade 12 or GED (High school graduate)                              0.157032
+IncomeBracketHH income 10k - 15k:EducCollege 1 year to 3 years (Some college or technical school)     0.085367
+IncomeBracketHH income 15k - 20k:EducCollege 1 year to 3 years (Some college or technical school)     0.090701
+IncomeBracketHH income 20k - 25k:EducCollege 1 year to 3 years (Some college or technical school)     0.087123
+IncomeBracketHH income 25k - 35k:EducCollege 1 year to 3 years (Some college or technical school)     0.077499
+IncomeBracketHH income 35k - 50k:EducCollege 1 year to 3 years (Some college or technical school)     0.096845
+IncomeBracketHH income 50k - 75k:EducCollege 1 year to 3 years (Some college or technical school)     0.108181
+IncomeBracketHH income 75k - 100k:EducCollege 1 year to 3 years (Some college or technical school)    0.164984
+IncomeBracketHH income 100k - 150k:EducCollege 1 year to 3 years (Some college or technical school)   0.143994
+IncomeBracketHH income 150k - 200k:EducCollege 1 year to 3 years (Some college or technical school)   0.187562
+IncomeBracketHH income 200k +:EducCollege 1 year to 3 years (Some college or technical school)        0.156928
+IncomeBracketHH income 10k - 15k:EducCollege 4 years or more (College graduate)                       0.086020
+IncomeBracketHH income 15k - 20k:EducCollege 4 years or more (College graduate)                       0.091186
+IncomeBracketHH income 20k - 25k:EducCollege 4 years or more (College graduate)                       0.087502
+IncomeBracketHH income 25k - 35k:EducCollege 4 years or more (College graduate)                       0.077820
+IncomeBracketHH income 35k - 50k:EducCollege 4 years or more (College graduate)                       0.097072
+IncomeBracketHH income 50k - 75k:EducCollege 4 years or more (College graduate)                       0.108366
+IncomeBracketHH income 75k - 100k:EducCollege 4 years or more (College graduate)                      0.165094
+IncomeBracketHH income 100k - 150k:EducCollege 4 years or more (College graduate)                     0.144107
+IncomeBracketHH income 150k - 200k:EducCollege 4 years or more (College graduate)                     0.187582
+IncomeBracketHH income 200k +:EducCollege 4 years or more (College graduate)                          0.156891
+                                                                                                    t value
+(Intercept)                                                                                           9.732
+IncomeBracketHH income 10k - 15k                                                                     -0.728
+IncomeBracketHH income 15k - 20k                                                                     -2.084
+IncomeBracketHH income 20k - 25k                                                                     -1.295
+IncomeBracketHH income 25k - 35k                                                                     -2.190
+IncomeBracketHH income 35k - 50k                                                                     -2.543
+IncomeBracketHH income 50k - 75k                                                                     -0.995
+IncomeBracketHH income 75k - 100k                                                                    -1.686
+IncomeBracketHH income 100k - 150k                                                                   -2.596
+IncomeBracketHH income 150k - 200k                                                                   -0.281
+IncomeBracketHH income 200k +                                                                        -1.911
+EducGrades 1 through 8 (Elementary)                                                                  -0.331
+EducGrades 9 through 11 (Some high school)                                                            1.371
+EducGrade 12 or GED (High school graduate)                                                            1.094
+EducCollege 1 year to 3 years (Some college or technical school)                                      2.298
+EducCollege 4 years or more (College graduate)                                                        1.465
+AgeBracketAge 25 to 29                                                                               -8.971
+AgeBracketAge 30 to 34                                                                              -16.858
+AgeBracketAge 35 to 39                                                                              -25.400
+AgeBracketAge 40 to 44                                                                              -31.101
+AgeBracketAge 45 to 49                                                                              -37.000
+AgeBracketAge 50 to 54                                                                              -42.914
+AgeBracketAge 55 to 59                                                                              -52.534
+AgeBracketAge 60 to 64                                                                              -63.665
+AgeBracketAge 65 to 69                                                                              -76.515
+AgeBracketAge 70 to 74                                                                              -81.219
+AgeBracketAge 75 to 79                                                                              -79.748
+AgeBracketDont know/Refused/Missing                                                                 -31.234
+IncomeBracketHH income 10k - 15k:EducGrades 1 through 8 (Elementary)                                  0.962
+IncomeBracketHH income 15k - 20k:EducGrades 1 through 8 (Elementary)                                  1.452
+IncomeBracketHH income 20k - 25k:EducGrades 1 through 8 (Elementary)                                  0.235
+IncomeBracketHH income 25k - 35k:EducGrades 1 through 8 (Elementary)                                  0.420
+IncomeBracketHH income 35k - 50k:EducGrades 1 through 8 (Elementary)                                  0.435
+IncomeBracketHH income 50k - 75k:EducGrades 1 through 8 (Elementary)                                  0.031
+IncomeBracketHH income 75k - 100k:EducGrades 1 through 8 (Elementary)                                 0.400
+IncomeBracketHH income 100k - 150k:EducGrades 1 through 8 (Elementary)                                1.389
+IncomeBracketHH income 150k - 200k:EducGrades 1 through 8 (Elementary)                               -0.653
+IncomeBracketHH income 200k +:EducGrades 1 through 8 (Elementary)                                     1.371
+IncomeBracketHH income 10k - 15k:EducGrades 9 through 11 (Some high school)                           0.784
+IncomeBracketHH income 15k - 20k:EducGrades 9 through 11 (Some high school)                           1.589
+IncomeBracketHH income 20k - 25k:EducGrades 9 through 11 (Some high school)                           0.264
+IncomeBracketHH income 25k - 35k:EducGrades 9 through 11 (Some high school)                           0.777
+IncomeBracketHH income 35k - 50k:EducGrades 9 through 11 (Some high school)                           0.882
+IncomeBracketHH income 50k - 75k:EducGrades 9 through 11 (Some high school)                          -0.647
+IncomeBracketHH income 75k - 100k:EducGrades 9 through 11 (Some high school)                          0.669
+IncomeBracketHH income 100k - 150k:EducGrades 9 through 11 (Some high school)                         1.407
+IncomeBracketHH income 150k - 200k:EducGrades 9 through 11 (Some high school)                        -1.078
+IncomeBracketHH income 200k +:EducGrades 9 through 11 (Some high school)                              0.465
+IncomeBracketHH income 10k - 15k:EducGrade 12 or GED (High school graduate)                           0.899
+IncomeBracketHH income 15k - 20k:EducGrade 12 or GED (High school graduate)                           1.655
+IncomeBracketHH income 20k - 25k:EducGrade 12 or GED (High school graduate)                           0.435
+IncomeBracketHH income 25k - 35k:EducGrade 12 or GED (High school graduate)                           0.831
+IncomeBracketHH income 35k - 50k:EducGrade 12 or GED (High school graduate)                           1.117
+IncomeBracketHH income 50k - 75k:EducGrade 12 or GED (High school graduate)                          -0.568
+IncomeBracketHH income 75k - 100k:EducGrade 12 or GED (High school graduate)                          0.490
+IncomeBracketHH income 100k - 150k:EducGrade 12 or GED (High school graduate)                         1.109
+IncomeBracketHH income 150k - 200k:EducGrade 12 or GED (High school graduate)                        -0.993
+IncomeBracketHH income 200k +:EducGrade 12 or GED (High school graduate)                              0.374
+IncomeBracketHH income 10k - 15k:EducCollege 1 year to 3 years (Some college or technical school)     0.945
+IncomeBracketHH income 15k - 20k:EducCollege 1 year to 3 years (Some college or technical school)     1.615
+IncomeBracketHH income 20k - 25k:EducCollege 1 year to 3 years (Some college or technical school)     0.470
+IncomeBracketHH income 25k - 35k:EducCollege 1 year to 3 years (Some college or technical school)     0.635
+IncomeBracketHH income 35k - 50k:EducCollege 1 year to 3 years (Some college or technical school)     0.774
+IncomeBracketHH income 50k - 75k:EducCollege 1 year to 3 years (Some college or technical school)    -0.912
+IncomeBracketHH income 75k - 100k:EducCollege 1 year to 3 years (Some college or technical school)    0.243
+IncomeBracketHH income 100k - 150k:EducCollege 1 year to 3 years (Some college or technical school)   0.790
+IncomeBracketHH income 150k - 200k:EducCollege 1 year to 3 years (Some college or technical school)  -1.154
+IncomeBracketHH income 200k +:EducCollege 1 year to 3 years (Some college or technical school)        0.049
+IncomeBracketHH income 10k - 15k:EducCollege 4 years or more (College graduate)                       0.859
+IncomeBracketHH income 15k - 20k:EducCollege 4 years or more (College graduate)                       1.584
+IncomeBracketHH income 20k - 25k:EducCollege 4 years or more (College graduate)                       0.525
+IncomeBracketHH income 25k - 35k:EducCollege 4 years or more (College graduate)                       0.796
+IncomeBracketHH income 35k - 50k:EducCollege 4 years or more (College graduate)                       1.159
+IncomeBracketHH income 50k - 75k:EducCollege 4 years or more (College graduate)                      -0.453
+IncomeBracketHH income 75k - 100k:EducCollege 4 years or more (College graduate)                      0.514
+IncomeBracketHH income 100k - 150k:EducCollege 4 years or more (College graduate)                     1.080
+IncomeBracketHH income 150k - 200k:EducCollege 4 years or more (College graduate)                    -0.989
+IncomeBracketHH income 200k +:EducCollege 4 years or more (College graduate)                          0.214
+                                                                                                    Pr(>|t|)
+(Intercept)                                                                                          < 2e-16
+IncomeBracketHH income 10k - 15k                                                                     0.46637
+IncomeBracketHH income 15k - 20k                                                                     0.03714
+IncomeBracketHH income 20k - 25k                                                                     0.19527
+IncomeBracketHH income 25k - 35k                                                                     0.02850
+IncomeBracketHH income 35k - 50k                                                                     0.01099
+IncomeBracketHH income 50k - 75k                                                                     0.31983
+IncomeBracketHH income 75k - 100k                                                                    0.09182
+IncomeBracketHH income 100k - 150k                                                                   0.00942
+IncomeBracketHH income 150k - 200k                                                                   0.77840
+IncomeBracketHH income 200k +                                                                        0.05595
+EducGrades 1 through 8 (Elementary)                                                                  0.74074
+EducGrades 9 through 11 (Some high school)                                                           0.17037
+EducGrade 12 or GED (High school graduate)                                                           0.27376
+EducCollege 1 year to 3 years (Some college or technical school)                                     0.02158
+EducCollege 4 years or more (College graduate)                                                       0.14284
+AgeBracketAge 25 to 29                                                                               < 2e-16
+AgeBracketAge 30 to 34                                                                               < 2e-16
+AgeBracketAge 35 to 39                                                                               < 2e-16
+AgeBracketAge 40 to 44                                                                               < 2e-16
+AgeBracketAge 45 to 49                                                                               < 2e-16
+AgeBracketAge 50 to 54                                                                               < 2e-16
+AgeBracketAge 55 to 59                                                                               < 2e-16
+AgeBracketAge 60 to 64                                                                               < 2e-16
+AgeBracketAge 65 to 69                                                                               < 2e-16
+AgeBracketAge 70 to 74                                                                               < 2e-16
+AgeBracketAge 75 to 79                                                                               < 2e-16
+AgeBracketDont know/Refused/Missing                                                                  < 2e-16
+IncomeBracketHH income 10k - 15k:EducGrades 1 through 8 (Elementary)                                 0.33624
+IncomeBracketHH income 15k - 20k:EducGrades 1 through 8 (Elementary)                                 0.14640
+IncomeBracketHH income 20k - 25k:EducGrades 1 through 8 (Elementary)                                 0.81411
+IncomeBracketHH income 25k - 35k:EducGrades 1 through 8 (Elementary)                                 0.67453
+IncomeBracketHH income 35k - 50k:EducGrades 1 through 8 (Elementary)                                 0.66321
+IncomeBracketHH income 50k - 75k:EducGrades 1 through 8 (Elementary)                                 0.97502
+IncomeBracketHH income 75k - 100k:EducGrades 1 through 8 (Elementary)                                0.68921
+IncomeBracketHH income 100k - 150k:EducGrades 1 through 8 (Elementary)                               0.16476
+IncomeBracketHH income 150k - 200k:EducGrades 1 through 8 (Elementary)                               0.51391
+IncomeBracketHH income 200k +:EducGrades 1 through 8 (Elementary)                                    0.17041
+IncomeBracketHH income 10k - 15k:EducGrades 9 through 11 (Some high school)                          0.43283
+IncomeBracketHH income 15k - 20k:EducGrades 9 through 11 (Some high school)                          0.11197
+IncomeBracketHH income 20k - 25k:EducGrades 9 through 11 (Some high school)                          0.79187
+IncomeBracketHH income 25k - 35k:EducGrades 9 through 11 (Some high school)                          0.43705
+IncomeBracketHH income 35k - 50k:EducGrades 9 through 11 (Some high school)                          0.37779
+IncomeBracketHH income 50k - 75k:EducGrades 9 through 11 (Some high school)                          0.51779
+IncomeBracketHH income 75k - 100k:EducGrades 9 through 11 (Some high school)                         0.50339
+IncomeBracketHH income 100k - 150k:EducGrades 9 through 11 (Some high school)                        0.15931
+IncomeBracketHH income 150k - 200k:EducGrades 9 through 11 (Some high school)                        0.28089
+IncomeBracketHH income 200k +:EducGrades 9 through 11 (Some high school)                             0.64209
+IncomeBracketHH income 10k - 15k:EducGrade 12 or GED (High school graduate)                          0.36876
+IncomeBracketHH income 15k - 20k:EducGrade 12 or GED (High school graduate)                          0.09789
+IncomeBracketHH income 20k - 25k:EducGrade 12 or GED (High school graduate)                          0.66360
+IncomeBracketHH income 25k - 35k:EducGrade 12 or GED (High school graduate)                          0.40586
+IncomeBracketHH income 35k - 50k:EducGrade 12 or GED (High school graduate)                          0.26400
+IncomeBracketHH income 50k - 75k:EducGrade 12 or GED (High school graduate)                          0.56998
+IncomeBracketHH income 75k - 100k:EducGrade 12 or GED (High school graduate)                         0.62409
+IncomeBracketHH income 100k - 150k:EducGrade 12 or GED (High school graduate)                        0.26733
+IncomeBracketHH income 150k - 200k:EducGrade 12 or GED (High school graduate)                        0.32086
+IncomeBracketHH income 200k +:EducGrade 12 or GED (High school graduate)                             0.70816
+IncomeBracketHH income 10k - 15k:EducCollege 1 year to 3 years (Some college or technical school)    0.34457
+IncomeBracketHH income 15k - 20k:EducCollege 1 year to 3 years (Some college or technical school)    0.10634
+IncomeBracketHH income 20k - 25k:EducCollege 1 year to 3 years (Some college or technical school)    0.63855
+IncomeBracketHH income 25k - 35k:EducCollege 1 year to 3 years (Some college or technical school)    0.52520
+IncomeBracketHH income 35k - 50k:EducCollege 1 year to 3 years (Some college or technical school)    0.43905
+IncomeBracketHH income 50k - 75k:EducCollege 1 year to 3 years (Some college or technical school)    0.36193
+IncomeBracketHH income 75k - 100k:EducCollege 1 year to 3 years (Some college or technical school)   0.80800
+IncomeBracketHH income 100k - 150k:EducCollege 1 year to 3 years (Some college or technical school)  0.42942
+IncomeBracketHH income 150k - 200k:EducCollege 1 year to 3 years (Some college or technical school)  0.24841
+IncomeBracketHH income 200k +:EducCollege 1 year to 3 years (Some college or technical school)       0.96062
+IncomeBracketHH income 10k - 15k:EducCollege 4 years or more (College graduate)                      0.39045
+IncomeBracketHH income 15k - 20k:EducCollege 4 years or more (College graduate)                      0.11309
+IncomeBracketHH income 20k - 25k:EducCollege 4 years or more (College graduate)                      0.59982
+IncomeBracketHH income 25k - 35k:EducCollege 4 years or more (College graduate)                      0.42624
+IncomeBracketHH income 35k - 50k:EducCollege 4 years or more (College graduate)                      0.24662
+IncomeBracketHH income 50k - 75k:EducCollege 4 years or more (College graduate)                      0.65067
+IncomeBracketHH income 75k - 100k:EducCollege 4 years or more (College graduate)                     0.60714
+IncomeBracketHH income 100k - 150k:EducCollege 4 years or more (College graduate)                    0.28005
+IncomeBracketHH income 150k - 200k:EducCollege 4 years or more (College graduate)                    0.32250
+IncomeBracketHH income 200k +:EducCollege 4 years or more (College graduate)                         0.83030
+                                                                                                       
+(Intercept)                                                                                         ***
+IncomeBracketHH income 10k - 15k                                                                       
+IncomeBracketHH income 15k - 20k                                                                    *  
+IncomeBracketHH income 20k - 25k                                                                       
+IncomeBracketHH income 25k - 35k                                                                    *  
+IncomeBracketHH income 35k - 50k                                                                    *  
+IncomeBracketHH income 50k - 75k                                                                       
+IncomeBracketHH income 75k - 100k                                                                   .  
+IncomeBracketHH income 100k - 150k                                                                  ** 
+IncomeBracketHH income 150k - 200k                                                                     
+IncomeBracketHH income 200k +                                                                       .  
+EducGrades 1 through 8 (Elementary)                                                                    
+EducGrades 9 through 11 (Some high school)                                                             
+EducGrade 12 or GED (High school graduate)                                                             
+EducCollege 1 year to 3 years (Some college or technical school)                                    *  
+EducCollege 4 years or more (College graduate)                                                         
+AgeBracketAge 25 to 29                                                                              ***
+AgeBracketAge 30 to 34                                                                              ***
+AgeBracketAge 35 to 39                                                                              ***
+AgeBracketAge 40 to 44                                                                              ***
+AgeBracketAge 45 to 49                                                                              ***
+AgeBracketAge 50 to 54                                                                              ***
+AgeBracketAge 55 to 59                                                                              ***
+AgeBracketAge 60 to 64                                                                              ***
+AgeBracketAge 65 to 69                                                                              ***
+AgeBracketAge 70 to 74                                                                              ***
+AgeBracketAge 75 to 79                                                                              ***
+AgeBracketDont know/Refused/Missing                                                                 ***
+IncomeBracketHH income 10k - 15k:EducGrades 1 through 8 (Elementary)                                   
+IncomeBracketHH income 15k - 20k:EducGrades 1 through 8 (Elementary)                                   
+IncomeBracketHH income 20k - 25k:EducGrades 1 through 8 (Elementary)                                   
+IncomeBracketHH income 25k - 35k:EducGrades 1 through 8 (Elementary)                                   
+IncomeBracketHH income 35k - 50k:EducGrades 1 through 8 (Elementary)                                   
+IncomeBracketHH income 50k - 75k:EducGrades 1 through 8 (Elementary)                                   
+IncomeBracketHH income 75k - 100k:EducGrades 1 through 8 (Elementary)                                  
+IncomeBracketHH income 100k - 150k:EducGrades 1 through 8 (Elementary)                                 
+IncomeBracketHH income 150k - 200k:EducGrades 1 through 8 (Elementary)                                 
+IncomeBracketHH income 200k +:EducGrades 1 through 8 (Elementary)                                      
+IncomeBracketHH income 10k - 15k:EducGrades 9 through 11 (Some high school)                            
+IncomeBracketHH income 15k - 20k:EducGrades 9 through 11 (Some high school)                            
+IncomeBracketHH income 20k - 25k:EducGrades 9 through 11 (Some high school)                            
+IncomeBracketHH income 25k - 35k:EducGrades 9 through 11 (Some high school)                            
+IncomeBracketHH income 35k - 50k:EducGrades 9 through 11 (Some high school)                            
+IncomeBracketHH income 50k - 75k:EducGrades 9 through 11 (Some high school)                            
+IncomeBracketHH income 75k - 100k:EducGrades 9 through 11 (Some high school)                           
+IncomeBracketHH income 100k - 150k:EducGrades 9 through 11 (Some high school)                          
+IncomeBracketHH income 150k - 200k:EducGrades 9 through 11 (Some high school)                          
+IncomeBracketHH income 200k +:EducGrades 9 through 11 (Some high school)                               
+IncomeBracketHH income 10k - 15k:EducGrade 12 or GED (High school graduate)                            
+IncomeBracketHH income 15k - 20k:EducGrade 12 or GED (High school graduate)                         .  
+IncomeBracketHH income 20k - 25k:EducGrade 12 or GED (High school graduate)                            
+IncomeBracketHH income 25k - 35k:EducGrade 12 or GED (High school graduate)                            
+IncomeBracketHH income 35k - 50k:EducGrade 12 or GED (High school graduate)                            
+IncomeBracketHH income 50k - 75k:EducGrade 12 or GED (High school graduate)                            
+IncomeBracketHH income 75k - 100k:EducGrade 12 or GED (High school graduate)                           
+IncomeBracketHH income 100k - 150k:EducGrade 12 or GED (High school graduate)                          
+IncomeBracketHH income 150k - 200k:EducGrade 12 or GED (High school graduate)                          
+IncomeBracketHH income 200k +:EducGrade 12 or GED (High school graduate)                               
+IncomeBracketHH income 10k - 15k:EducCollege 1 year to 3 years (Some college or technical school)      
+IncomeBracketHH income 15k - 20k:EducCollege 1 year to 3 years (Some college or technical school)      
+IncomeBracketHH income 20k - 25k:EducCollege 1 year to 3 years (Some college or technical school)      
+IncomeBracketHH income 25k - 35k:EducCollege 1 year to 3 years (Some college or technical school)      
+IncomeBracketHH income 35k - 50k:EducCollege 1 year to 3 years (Some college or technical school)      
+IncomeBracketHH income 50k - 75k:EducCollege 1 year to 3 years (Some college or technical school)      
+IncomeBracketHH income 75k - 100k:EducCollege 1 year to 3 years (Some college or technical school)     
+IncomeBracketHH income 100k - 150k:EducCollege 1 year to 3 years (Some college or technical school)    
+IncomeBracketHH income 150k - 200k:EducCollege 1 year to 3 years (Some college or technical school)    
+IncomeBracketHH income 200k +:EducCollege 1 year to 3 years (Some college or technical school)         
+IncomeBracketHH income 10k - 15k:EducCollege 4 years or more (College graduate)                        
+IncomeBracketHH income 15k - 20k:EducCollege 4 years or more (College graduate)                        
+IncomeBracketHH income 20k - 25k:EducCollege 4 years or more (College graduate)                        
+IncomeBracketHH income 25k - 35k:EducCollege 4 years or more (College graduate)                        
+IncomeBracketHH income 35k - 50k:EducCollege 4 years or more (College graduate)                        
+IncomeBracketHH income 50k - 75k:EducCollege 4 years or more (College graduate)                        
+IncomeBracketHH income 75k - 100k:EducCollege 4 years or more (College graduate)                       
+IncomeBracketHH income 100k - 150k:EducCollege 4 years or more (College graduate)                      
+IncomeBracketHH income 150k - 200k:EducCollege 4 years or more (College graduate)                      
+IncomeBracketHH income 200k +:EducCollege 4 years or more (College graduate)                           
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 0.4362 on 318759 degrees of freedom
+  (90044 observations deleted due to missingness)
+Multiple R-squared:  0.07405,	Adjusted R-squared:  0.07383 
+F-statistic: 331.1 on 77 and 318759 DF,  p-value: < 2.2e-16
+
+Linear hypothesis test:
+IncomeBracketHH income 10k - 15k = 0
+IncomeBracketHH income 15k - 20k = 0
+IncomeBracketHH income 20k - 25k = 0
+IncomeBracketHH income 25k - 35k = 0
+IncomeBracketHH income 35k - 50k = 0
+IncomeBracketHH income 50k - 75k = 0
+IncomeBracketHH income 75k - 100k = 0
+IncomeBracketHH income 100k - 150k = 0
+IncomeBracketHH income 150k - 200k = 0
+IncomeBracketHH income 200k + = 0
+
+Model 1: restricted model
+Model 2: MentalHealth_01 ~ IncomeBracket * Educ + AgeBracket
+
+  Res.Df   RSS Df Sum of Sq      F Pr(>F)
+1 318769 60655                           
+2 318759 60652 10    2.9995 1.5764 0.1066
+
+Linear hypothesis test:
+EducGradesthrough 8 (Elementary) = 0
+EducGrades 9 through 11 (Some high school) = 0
+EducGrade 12 or GED (High school graduate) = 0
+EducCollegeyear to 3 years (Some college or technical school) = 0
+EducCollege 4 years or more (College graduate) = 0
+
+Model 1: restricted model
+Model 2: MentalHealth_01 ~ IncomeBracket * Educ + AgeBracket
+
+  Res.Df   RSS Df Sum of Sq      F    Pr(>F)    
+1 318764 60668                                  
+2 318759 60652  5    15.886 16.698 < 2.2e-16 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+> 
+
+Number 5:
+
+
+Call:
+glm(formula = MentalHealth_01 ~ IncomeBracket + Educ + AgeBracket, 
+    family = binomial(link = "logit"), data = Logitsubset_data)
+
+Coefficients:
+                                                                 Estimate
+(Intercept)                                                      -0.02792
+IncomeBracketHH income 10k - 15k                                  0.10996
+IncomeBracketHH income 15k - 20k                                 -0.14763
+IncomeBracketHH income 20k - 25k                                 -0.29782
+IncomeBracketHH income 25k - 35k                                 -0.47722
+IncomeBracketHH income 35k - 50k                                 -0.66557
+IncomeBracketHH income 50k - 75k                                 -0.80835
+IncomeBracketHH income 75k - 100k                                -0.98195
+IncomeBracketHH income 100k - 150k                               -1.09791
+IncomeBracketHH income 150k - 200k                               -1.20356
+IncomeBracketHH income 200k +                                    -1.35208
+EducGrades 1 through 8 (Elementary)                               0.15050
+EducGrades 9 through 11 (Some high school)                        0.68545
+EducGrade 12 or GED (High school graduate)                        0.63992
+EducCollege 1 year to 3 years (Some college or technical school)  0.85766
+EducCollege 4 years or more (College graduate)                    0.77613
+AgeBracketAge 25 to 29                                           -0.16528
+AgeBracketAge 30 to 34                                           -0.29566
+AgeBracketAge 35 to 39                                           -0.44314
+AgeBracketAge 40 to 44                                           -0.54645
+AgeBracketAge 45 to 49                                           -0.67284
+AgeBracketAge 50 to 54                                           -0.77290
+AgeBracketAge 55 to 59                                           -0.96474
+AgeBracketAge 60 to 64                                           -1.16988
+AgeBracketAge 65 to 69                                           -1.46149
+AgeBracketAge 70 to 74                                           -1.62428
+AgeBracketAge 75 to 79                                           -1.72840
+AgeBracketDont know/Refused/Missing                              -1.23416
+                                                                 Std. Error
+(Intercept)                                                         0.13083
+IncomeBracketHH income 10k - 15k                                    0.03011
+IncomeBracketHH income 15k - 20k                                    0.02867
+IncomeBracketHH income 20k - 25k                                    0.02695
+IncomeBracketHH income 25k - 35k                                    0.02439
+IncomeBracketHH income 35k - 50k                                    0.02436
+IncomeBracketHH income 50k - 75k                                    0.02393
+IncomeBracketHH income 75k - 100k                                   0.02456
+IncomeBracketHH income 100k - 150k                                  0.02460
+IncomeBracketHH income 150k - 200k                                  0.02765
+IncomeBracketHH income 200k +                                       0.02799
+EducGrades 1 through 8 (Elementary)                                 0.13311
+EducGrades 9 through 11 (Some high school)                          0.13043
+EducGrade 12 or GED (High school graduate)                          0.12908
+EducCollege 1 year to 3 years (Some college or technical school)    0.12907
+EducCollege 4 years or more (College graduate)                      0.12910
+AgeBracketAge 25 to 29                                              0.02173
+AgeBracketAge 30 to 34                                              0.02092
+AgeBracketAge 35 to 39                                              0.02064
+AgeBracketAge 40 to 44                                              0.02057
+AgeBracketAge 45 to 49                                              0.02101
+AgeBracketAge 50 to 54                                              0.02043
+AgeBracketAge 55 to 59                                              0.02034
+AgeBracketAge 60 to 64                                              0.01991
+AgeBracketAge 65 to 69                                              0.02033
+AgeBracketAge 70 to 74                                              0.02128
+AgeBracketAge 75 to 79                                              0.02356
+AgeBracketDont know/Refused/Missing                                 0.04671
+                                                                 z value
+(Intercept)                                                       -0.213
+IncomeBracketHH income 10k - 15k                                   3.652
+IncomeBracketHH income 15k - 20k                                  -5.149
+IncomeBracketHH income 20k - 25k                                 -11.051
+IncomeBracketHH income 25k - 35k                                 -19.569
+IncomeBracketHH income 35k - 50k                                 -27.324
+IncomeBracketHH income 50k - 75k                                 -33.783
+IncomeBracketHH income 75k - 100k                                -39.983
+IncomeBracketHH income 100k - 150k                               -44.624
+IncomeBracketHH income 150k - 200k                               -43.532
+IncomeBracketHH income 200k +                                    -48.306
+EducGrades 1 through 8 (Elementary)                                1.131
+EducGrades 9 through 11 (Some high school)                         5.255
+EducGrade 12 or GED (High school graduate)                         4.958
+EducCollege 1 year to 3 years (Some college or technical school)   6.645
+EducCollege 4 years or more (College graduate)                     6.012
+AgeBracketAge 25 to 29                                            -7.607
+AgeBracketAge 30 to 34                                           -14.134
+AgeBracketAge 35 to 39                                           -21.475
+AgeBracketAge 40 to 44                                           -26.559
+AgeBracketAge 45 to 49                                           -32.032
+AgeBracketAge 50 to 54                                           -37.833
+AgeBracketAge 55 to 59                                           -47.423
+AgeBracketAge 60 to 64                                           -58.758
+AgeBracketAge 65 to 69                                           -71.888
+AgeBracketAge 70 to 74                                           -76.340
+AgeBracketAge 75 to 79                                           -73.363
+AgeBracketDont know/Refused/Missing                              -26.422
+                                                                 Pr(>|z|)    
+(Intercept)                                                       0.83101    
+IncomeBracketHH income 10k - 15k                                  0.00026 ***
+IncomeBracketHH income 15k - 20k                                 2.62e-07 ***
+IncomeBracketHH income 20k - 25k                                  < 2e-16 ***
+IncomeBracketHH income 25k - 35k                                  < 2e-16 ***
+IncomeBracketHH income 35k - 50k                                  < 2e-16 ***
+IncomeBracketHH income 50k - 75k                                  < 2e-16 ***
+IncomeBracketHH income 75k - 100k                                 < 2e-16 ***
+IncomeBracketHH income 100k - 150k                                < 2e-16 ***
+IncomeBracketHH income 150k - 200k                                < 2e-16 ***
+IncomeBracketHH income 200k +                                     < 2e-16 ***
+EducGrades 1 through 8 (Elementary)                               0.25821    
+EducGrades 9 through 11 (Some high school)                       1.48e-07 ***
+EducGrade 12 or GED (High school graduate)                       7.13e-07 ***
+EducCollege 1 year to 3 years (Some college or technical school) 3.03e-11 ***
+EducCollege 4 years or more (College graduate)                   1.83e-09 ***
+AgeBracketAge 25 to 29                                           2.79e-14 ***
+AgeBracketAge 30 to 34                                            < 2e-16 ***
+AgeBracketAge 35 to 39                                            < 2e-16 ***
+AgeBracketAge 40 to 44                                            < 2e-16 ***
+AgeBracketAge 45 to 49                                            < 2e-16 ***
+AgeBracketAge 50 to 54                                            < 2e-16 ***
+AgeBracketAge 55 to 59                                            < 2e-16 ***
+AgeBracketAge 60 to 64                                            < 2e-16 ***
+AgeBracketAge 65 to 69                                            < 2e-16 ***
+AgeBracketAge 70 to 74                                            < 2e-16 ***
+AgeBracketAge 75 to 79                                            < 2e-16 ***
+AgeBracketDont know/Refused/Missing                               < 2e-16 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+(Dispersion parameter for binomial family taken to be 1)
+
+    Null deviance: 383356  on 318836  degrees of freedom
+Residual deviance: 359772  on 318809  degrees of freedom
+AIC: 359828
+
+Number of Fisher Scoring iterations: 4
